@@ -132,6 +132,25 @@ This ensures that web applications created before HTTP/2 can continue functionin
     Header Frame for Request #2
     path:       /academy/images
 
+    HTTP 1.1 v/s HTTP 2.0 in Simpler words.
+
+    HTTP 1.1
+    1. keeps all the requests and responses in plain text format.
+    2. No Multiplexing.
+    3. No stream prioritization.
+    4. Buffer overflow handling. (relies on TCP flow control)
+    5. No Server push.
+    6. No header Compression.
+
+    HTTP 2.0
+    1. Uses the binary framing layer to encapsulate all messages in binary format.
+    2. Multiplexing.
+    3. Stream prioritization.
+    4. Buffer overflow handling. (Own flow control at the application layer)
+    5. Server push (seperating document from resource)
+    6. header compression possible because of binary encapsulation.
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 2. HTTP version history
    HTTP (Hypertext Transfer Protocol) is the underlying communication protocol of World Wide Web.
    HTTP functions as a request–response protocol in the client–server computing model.
@@ -198,6 +217,7 @@ This ensures that web applications created before HTTP/2 can continue functionin
     It compresses headers. As these are often similar among a set of requests, this removes duplication and overhead of data transmitted.
     It allows a server to populate data in a client cache, in advance of it being required, through a mechanism called the server push.
 
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 3. Differences between browser JS (console) and Node JS.
    Node and web browsers, both executes JavaScript, but Node does that in server side and browsers in client side.
    Node uses the same JavaScript engine which is the backbone of Chrome, but still we can find few differences between Node and Browser.
@@ -230,6 +250,7 @@ This ensures that web applications created before HTTP/2 can continue functionin
    It is just the Node wrapper which has been written on top of  JavaScript V8 Runtime engine, which is deleting few objects and also including
    some according to the requirement of Node.
 
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 4. What happens when you type a URL in the address bar in the browser ?
    URL stands for Uniform Resource Locator. URL is the address of the website which we can find in the address bar of your web browser.
    It is a reference to a resource on the internet, be it images, hypertext pages, audio/video files, etc.
@@ -256,3 +277,4 @@ This ensures that web applications created before HTTP/2 can continue functionin
     Server sends out an HTTP response along with the status of response.
     Browser displays HTML content
     Finally, Done.
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------

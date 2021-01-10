@@ -1,0 +1,50 @@
+1. What is internet ?
+   Internet is a remote connection / channel between local client device and web servers to exchange data.
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+2. How websites work?
+   User enters website in the address bar
+   Browser searches the cache for the associated IP address of the website (browser cache, os cache, router cache, ISP cache).
+   If not found in the cache, ISP's DNS server queries for the IP address (of the server hosting the website) and returns it.
+   Browser establishes a TCP connection with the server in that IP address.
+   Issues a HTTP request for the resources.
+   Server returns the requested resources as response.
+   HTML Parser, CSS Parser, and JS engines residing in the browser converts
+   this response in to meaningful data and displays on the web page in a form understandable by end user.
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+3. What is HTML ?
+   HTML stands for Hyper Text Markup Language
+   HTML is the standard markup language for creating Web pages
+   HTML describes the structure of a Web page
+   HTML consists of a series of elements
+   HTML elements tell the browser how to display the content
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+4. What are CSS ?
+   CSS stands for Cascading Style Sheets
+   CSS describes how HTML elements are to be displayed on screen, paper, or in other media 
+   (CSS is the style, i.e, look and feel of the structured content on the web page)
+   CSS saves a lot of work. It can control the layout of multiple web pages all at once
+   External stylesheets are stored in CSS files 
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+5. What is Javascript ?
+   JavaScript is the Programming Language for the Web.
+   JavaScript can update and change both HTML and CSS dynamically.
+   JavaScript can calculate, manipulate and validate data.
+   Javascript is a light weight programming language that can be used for both client side and server side.
+   In client side, it provides support for Interaction and behaviour of the structured content.
+   JavaScript is a scripting or programming language that allows you to implement complex features on web pages
+   — every time a web page does more than just sit there and display static information for you to look at
+   — displaying timely content updates, interactive maps, animated 2D/3D graphics, scrolling video jukeboxes, etc.
+   — you can bet that JavaScript is probably involved.
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+6. What is DOM ?
+7. What is CSSOM ?
+8. What is Layout tree ?
+9. Explain the structure of browser.
+10. What is NodeJS ?
+11. Name some rendering engines and JS Engines.
+12. Explain HTTP and internet protocols.
+13. Different type of error codes.
+14. Difference between MAC and IP address.
+15. What is SSL ?
+16. What are ports ?
+17. How does web browser interact with web server ?
