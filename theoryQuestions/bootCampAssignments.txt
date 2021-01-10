@@ -1,0 +1,258 @@
+1. Difference between HTTP1.1 and HTTP 2
+
+HTTP 1.1 :
+1. keeps all the requests and responses in plain text format.
+2. HTTP 1.1 maintains persistent TCP/IP connections.
+   HTTP/1.1 assumes that a TCP connection should be kept open unless directly told to close.
+   This allows the client to send multiple requests along the same connection without waiting for a response to each,
+   greatly improving the performance of HTTP/1.1 over HTTP/1.0.
+   
+   Unfortunately, there is a natural bottleneck to this optimization strategy.
+   Since multiple data packets cannot pass each other when traveling to the same destination,
+   there are situations in which a request at the head of the queue that cannot retrieve its required resource will block all the requests behind it.
+   This is known as head-of-line (HOL) blocking, and is a significant problem with optimizing connection efficiency in HTTP/1.1.
+   Adding separate, parallel TCP connections could alleviate this issue, but there are limits to the number of concurrent TCP connections possible between a client and server,
+   and each new connection requires significant resources.
+3. No stream Prioritization
+4. Buffer Overflow :
+   In any TCP connection between two machines, both the client and the server have a certain amount of buffer space available to hold incoming requests that have not yet been processed.
+   These buffers offer flexibility to account for numerous or particularly large requests, in addition to uneven speeds of downstream and upstream connections.
+   There are situations, however, in which a buffer is not enough.
+   For example, the server may be pushing a large amount of data at a pace that the client application is not able to cope with due to a limited buffer size or a lower bandwidth.
+   Likewise, when a client uploads a huge image or a video to a server, the server buffer may overflow, causing some additional packets to be lost.
+   In order to avoid buffer overflow, a flow control mechanism must prevent the sender from overwhelming the receiver with data.
+   When this connection initiates, both client and server establish their buffer sizes using their system default settings.
+   If the receiver’s buffer is partially filled with data, it will tell the sender its receive window, i.e.,
+   the amount of available space that remains in its buffer. This receive window is advertised in a signal known as an ACK packet,
+   which is the data packet that the receiver sends to acknowledge that it received the opening signal.
+   If this advertised receive window size is zero, the sender will send no more data until the client clears its internal buffer and then requests to resume data transmission.
+   It is important to note here that using receive windows based on the underlying TCP connection can only implement flow control on either end of the connection.
+   Because HTTP/1.1 relies on the transport layer to avoid buffer overflow, each new TCP connection requires a separate flow control mechanism.
+   HTTP/2, however, multiplexes streams within a single TCP connection, and will have to implement flow control in a different manner.
+5. Server Push: 
+   In a typical web application, the client will send a GET request and receive a page in HTML, usually the index page of the site.
+   While examining the index page contents, the client may discover that it needs to fetch additional resources, such as CSS and JavaScript files,
+   in order to fully render the page. The client determines that it needs these additional resources only after receiving the response from its initial GET request,
+   and thus must make additional requests to fetch these resources and complete putting the page together.
+   These additional requests ultimately increase the connection load time.
+   In HTTP/1.1, if the developer knows in advance which additional resources the client machine will need to render the page, they can use a technique called resource inlining
+   to include the required resource directly within the HTML document that the server sends in response to the initial GET request.
+   For example, if a client needs a specific CSS file to render a page, inlining that CSS file will provide the client with the needed resource before it asks for it,
+   reducing the total number of requests that the client must send. But there are a few problems with resource inlining.
+   Including the resource in the HTML document is a viable solution for smaller, text-based resources, but larger files in non-text formats can greatly increase the size of the HTML document,
+   which can ultimately decrease the connection speed and nullify the original advantage gained from using this technique.
+   Also, since the inlined resources are no longer separate from the HTML document, there is no mechanism for the client to decline resources that it already has,
+   or to place a resource in its cache. If multiple pages require the resource, each new HTML document will have the same resource inlined in its code,
+   leading to larger HTML documents and longer load times than if the resource were simply cached in the beginning.
+   A major drawback of resource inlining, then, is that the client cannot separate the resource and the document. 
+   There are solutions to this problem, however: since the server knows in advance that the client will require additional files,
+   the server can save the client time by sending these resources to the client before it asks for them.
+6. Compression : 
+   A common method of optimizing web applications is to use compression algorithms to reduce the size of HTTP messages that travel between the client and the server.
+   Programs like gzip have long been used to compress the data sent in HTTP messages, especially to decrease the size of CSS and JavaScript files.
+   The header component of a message, however, is always sent as plain text. Although each header is quite small,
+   the burden of this uncompressed data weighs heavier and heavier on the connection as more requests are made, particularly penalizing complicated,
+   API-heavy web applications that require many different resources and thus many different resource requests.
+   Additionally, the use of cookies can sometimes make headers much larger, increasing the need for some kind of compression.
+
+HTTP 2.0 :
+1. Uses the binary framing layer to encapsulate all messages in binary format, while still maintaining HTTP semantics, such as verbs, methods, and headers.
+An application level API would still create messages in the conventional HTTP formats, but the underlying layer would then convert these messages into binary.
+This ensures that web applications created before HTTP/2 can continue functioning as normal when interacting with the new protocol.
+2. In HTTP/2, the binary framing layer encodes requests/responses and cuts them up into smaller packets of information,
+   greatly increasing the flexibility of data transfer.
+   At the most granular level, the communication channel consists of a bunch of binary-encoded frames,
+   each tagged to a particular stream.
+   The identifying tags allow the connection to interleave these frames during transfer and reassemble them at the other end.
+   The interleaved requests and responses can run in parallel without blocking the messages behind them, 
+   a process called multiplexing.
+   Multiplexing resolves the head-of-line blocking issue in HTTP/1.1 by ensuring that no message has to wait for another to finish.
+   This also means that servers and clients can send concurrent requests and responses, allowing for greater control and more efficient connection management.
+
+   Since multiplexing allows the client to construct multiple streams in parallel, these streams only need to make use of a single TCP connection.
+   Having a single persistent connection per origin improves upon HTTP/1.1 by reducing the memory and processing footprint throughout the network.
+   This results in better network and bandwidth utilization and thus decreases the overall operational cost.
+3. Presence of Stream prioritization not only solves the possible issue of requests competing for the same resource,
+   but also allows developers to customize the relative weight of requests to better optimize application performance.
+   As an application developer, you can set the weights in your requests based on your needs along with the parent id of the streams the request is dependent on.
+   For example, you may assign a lower priority for loading an image with high resolution after providing a thumbnail image on the web page.
+   By providing this facility of weight assignment, HTTP/2 enables developers to gain better control over web page rendering.
+   The protocol also allows the client to change dependencies and reallocate weights at runtime in response to user interaction.
+   It is important to note, however, that a server may change assigned priorities on its own if a certain stream is blocked from accessing a specific resource.
+4. HTTP/2 multiplexes streams of data within a single TCP connection.
+   As a result, receive windows on the level of the TCP connection are not sufficient to regulate the delivery of individual streams.
+   HTTP/2 solves this problem by allowing the client and server to implement their own flow controls, rather than relying on the transport layer.
+   The application layer communicates the available buffer space, allowing the client and server to set the receive window on the level of the multiplexed streams.
+   This fine-scale flow control can be modified or maintained after the initial connection via a WINDOW_UPDATE frame.
+   Since this method controls data flow on the level of the application layer, the flow control mechanism does not have to wait for a signal
+   to reach its ultimate destination before adjusting the receive window.
+   Intermediary nodes can use the flow control settings information to determine their own resource allocations and modify accordingly.
+   In this way, each intermediary server can implement its own custom resource strategy, allowing for greater connection efficiency.
+5. Since HTTP/2 enables multiple concurrent responses to a client’s initial GET request, a server can send a resource to a client along with the requested HTML page,
+   providing the resource before the client asks for it. This process is called server push. In this way, an HTTP/2 connection can accomplish the same goal of resource inlining
+   while maintaining the separation between the pushed resource and the document. This means that the client can decide to cache or decline the pushed resource
+   separate from the main HTML document, fixing the major drawback of resource inlining.
+   In HTTP/2, this process begins when the server sends a PUSH_PROMISE frame to inform the client that it is going to push a resource.
+   This frame includes only the header of the message, and allows the client to know ahead of time which resource the server will push.
+   If it already has the resource cached, the client can decline the push by sending a RST_STREAM frame in response.
+   The PUSH_PROMISE frame also saves the client from sending a duplicate request to the server, since it knows which resources the server is going to push.
+6. One of the themes that has come up again and again in HTTP/2 is its ability to use the binary framing layer to exhibit greater control over finer detail.
+   The same is true when it comes to header compression. HTTP/2 can split headers from their data, resulting in a header frame and a data frame.
+   The HTTP/2-specific compression program HPACK can then compress this header frame. This algorithm can encode the header metadata using Huffman coding,
+   thereby greatly decreasing its size. Additionally, HPACK can keep track of previously conveyed metadata fields and further compress them according to a dynamically
+   altered index shared between the client and the server. 
+   Example : two requests are similar to each other ecxept for the path.
+
+    Request #1
+    method:     GET
+    scheme:     https
+    host:       example.com
+    path:       /academy
+    accept:     /image/jpeg
+    user-agent: Mozilla/5.0 ...
+    
+    Request #2
+    method:     GET
+    scheme:     https
+    host:       example.com
+    path:       /academy/images
+    accept:     /image/jpeg
+    user-agent: Mozilla/5.0 ...
+
+    So this can be compressed sing HPACK as follows.
+
+    Header Frame for Request #1
+    method:     GET
+    scheme:     https
+    host:       example.com
+    path:       /academy
+    accept:     /image/jpeg
+    user-agent: Mozilla/5.0 ...
+    
+    Header Frame for Request #2
+    path:       /academy/images
+
+2. HTTP version history
+   HTTP (Hypertext Transfer Protocol) is the underlying communication protocol of World Wide Web.
+   HTTP functions as a request–response protocol in the client–server computing model.
+   HTTP has four versions — HTTP/0.9, HTTP/1.0, HTTP/1.1, and HTTP/2.0.
+   Today the version in common use is HTTP/1.1 and the future will be HTTP/2.0.
+
+   HTTP/0.9 — The One-line Protocol
+    Initial version of HTTP — a simple client-server, request-response, telenet-friendly protocol
+    Request nature: single-line (method + path for requested document)
+    Methods supported: GET only
+    Response type: hypertext only
+    Connection nature: terminated immediately after the response
+    No HTTP headers (cannot transfer other content type files), No status/error codes, No URLs, No versioning
+    Popular web servers (Apache, Nginx) still supports HTTP/0/9.
+   
+   HTTP/1.0 — Building extensibility
+    Browser-friendly protocol
+    Provided header fields including rich metadata about both request and response (HTTP version number, status code, content type)
+    Response: not limited to hypertext (Content-Type header provided ability to transmit files other than plain HTML files — e.g. scripts, stylesheets, media)
+    Methods supported: GET , HEAD , POST
+    Connection nature: terminated immediately after the response
+
+   Establishing a new connection for each request — major problem in both HTTP/0.9 and HTTP/1.0
+
+   Both HTTP/0.9 and HTTP/1.0 required to open up a new connection for each request (and close it immediately after the response was sent).
+   Each time a new connection establishes, a TCP three-way handshake should also occur.
+   For better performance, it was crucial to reduce these round-trips between client and server.
+   HTTP/1.1 solved this with persistent connections.
+
+   HTTP/1.1 — The standardized protocol
+    This is the HTTP version currently in common use.
+    Introduced critical performance optimizations and feature enhancements — persistent and pipelined connections, chunked transfers, compression/decompression, content negotiations, virtual hosting (a server with a single IP Address hosting multiple domains), faster response and great bandwidth savings by adding cache support.
+    Methods supported: GET , HEAD , POST , PUT , DELETE , TRACE , OPTIONS
+    Connection nature: long-lived.
+
+   Keep-Alive header
+    The Keep-Alive header was used prior to HTTP/1.1 and was obsoleted by HTTP/1.1 making persistent connections the default behavior.
+    Keep-Alive header can be used to define policies for long-lived communication between hosts (i.e. allows a connection to stay active until an event occurs).
+    This laid foundation for persistence, reusable connections, pipelining, and many more enhanced capabilities in modern web communication protocols.
+    Client, server, or any intermediary can provide information for Keep-Alive header independently.
+    Also, a host can add timeout and max parameters in order to set a timeout or limit maximum request count per connection.
+
+    HTTP pipelining, multiple connections, and many more improvements have been implemented, thanks to the Keep-Alive header’s behavior.
+
+   Upgrade header
+    With Upgrade header introduced in HTTP/1.1, it is possible to start a connection using a commonly-used protocol, such as HTTP/1.1,
+    then request that the connection switch to an enhanced protocol type like HTTP/2.0 or WebSockets.
+    In an upgraded protocol connection, max parameter (maximum request count) is not present.
+    The upgraded protocol can provide new policies for timeout parameter (if not specifically defined, it uses default timeout value in underlying protocol).
+
+   HTTPS
+    Hyper Text Transfer Protocol Secure (HTTPS) is the secure version of HTTP. It uses SSL/TLS for secure encrypted communications.
+    Originally developed by Netscape in mid-1990s, SSL (Secure Socket Layer) is a cryptographic protocol enhancement to HTTP,
+    which defines how client and server should communicate with each other securely. TLS (Transport Layer Security) is the successor of SSL.
+    An HTTPS connection can protect the data transfer from the man-in-the-middle attacks and common security threats by providing bidirectional
+    encryption for communications between a client and server.
+
+    HTTP/2.0 and the future
+    All above features are being used by major web servers and browsers today.
+    But modern enhancements like HTTP/2.0, Server Side Events (SSE), and Websockets have changed the way that the traditional HTTP works.
+    The HTTP/2 protocol has several prime differences from the HTTP/1.1 version:
+    It is a binary protocol rather than text. It can no longer be read and created manually. Despite this hurdle, improved optimization techniques can now be implemented.
+    It is a multiplexed protocol. Parallel requests can be handled over the same connection, removing the order and blocking constraints of the HTTP/1.x protocol.
+    It compresses headers. As these are often similar among a set of requests, this removes duplication and overhead of data transmitted.
+    It allows a server to populate data in a client cache, in advance of it being required, through a mechanism called the server push.
+
+3. Differences between browser JS (console) and Node JS.
+   Node and web browsers, both executes JavaScript, but Node does that in server side and browsers in client side.
+   Node uses the same JavaScript engine which is the backbone of Chrome, but still we can find few differences between Node and Browser.
+   Node : 
+   1. Node doesn't have a predefined "window" object cause it doesn't have a window to draw anything.
+   2. "location" object is related to a particular url; that means it is for page specific. So, node doesn't require that.
+   3. Ofcourse Node doesn't have "document" object also, cause it never have to render anything in a page.
+   4. Node has "global", which is a predefined global object.
+      It contains several functions that are not available in browsers, cause they are needed for server side works only.
+   5. "require" object is predefined in Node which is used to include modules in the app
+   6. In Node everything is a module. You must keep your code inside a module.
+   7. Node is headless.
+   8. Node processes request object.
+   9. In Node.js we control the environment. Unless we are building an open source application that anyone can deploy anywhere,
+      we know which version of Node.js we will run the application on. This means that we can write all the modern ES6-7-8-9 JavaScript that our Node.js version supports.
+   Browser :
+   1. "window" is a predefined global object which has functions and attributes, that have to deal with window that has been drawn.
+   2. "location" is another predefined object in browsers, that has all the information about the url we have loaded.
+   3. "document", which is also another predefined global variable in browsers, has the html which is rendered.
+   4.  Browsers may have an object named "global", but it will be the exact one as "window".
+   5.  Browsers don't have "require" predefined. You may include it in your app for asynchronous file loading.
+   6.  Moduling is not mandatory in client side JavaScript, i.e. in browsers.
+   7.  Browsers are not headless.
+   8.  Browsers processes response objects.
+   9.  Since JavaScript moves so fast, but browsers can be a bit slow and users a bit slow to upgrade, sometimes on the web,
+       we are stuck with using older JavaScript / ECMAScript releases.
+       we can use Babel to transform our code to be ES5-compatible before shipping it to the browser, but in Node.js, we won't need that.
+
+   As both of them are JavaScript executor, and Node uses the JavaScript engine of a browser (Chrome), so differences are not much there.
+   It is just the Node wrapper which has been written on top of  JavaScript V8 Runtime engine, which is deleting few objects and also including
+   some according to the requirement of Node.
+
+4. What happens when you type a URL in the address bar in the browser ?
+   URL stands for Uniform Resource Locator. URL is the address of the website which we can find in the address bar of your web browser.
+   It is a reference to a resource on the internet, be it images, hypertext pages, audio/video files, etc.
+
+   Example : https://www.askyaksha.com/
+
+    DNS is short for Domain Name System. Like a phonebook, DNS maintains and maps the name of the website,
+    i.e. URL, and particular IP address it links to.
+    Every URL on the internet has a unique IP address which is of the computer which hosts the server of the website requested.
+
+    Steps for what happens when we enter a URL :
+
+    Browser checks cache for DNS entry to find the corresponding IP address of website.
+    It looks for following cache. If not found in one, then continues checking to the next until found.
+    Browser Cache
+    Operating Systems Cache
+    Router Cache
+    ISP Cache
+    If not found in cache, ISP’s (Internet Service Provider) DNS server initiates a DNS query to find IP address of server that hosts the domain name.
+    The requests are sent using small data packets that contain information content of request and IP address it is destined for.
+    Browser initiates a TCP (Transfer Control Protocol) connection with the server using synchronize(SYN) and acknowledge(ACK) messages.
+    Browser sends an HTTP request to the web server. GET or POST request.
+    Server on the host computer handles that request and sends back a response. It assembles a response in some format like JSON, XML and HTML.
+    Server sends out an HTTP response along with the status of response.
+    Browser displays HTML content
+    Finally, Done.
